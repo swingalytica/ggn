@@ -17,11 +17,11 @@ Golf Game Notation (GGN) is the open data format used by [RealGolf.Games](https:
 
 ## Structure
 
-A GGN file consists of three sections in order:
+A GGN file consists of the following sections in order:
 
 1. **Header** — key/value metadata tags
-2. **Players** — one tag per player
-3. **Board** _(optional)_ — game board state, only present for `4winning`
+2. **Players Block** — wrapped by `PLAYERS` and `ENDPLAYERS`
+3. **Gameboard Block** — wrapped by `GAMEBOARD` and `ENDGAMEBOARD`
 
 ---
 
@@ -33,81 +33,93 @@ Each tag is written on its own line in the format:
 [Key "Value"]
 ```
 
-| Tag          | Type     | Required | Description                                    |
-| ------------ | -------- | -------- | ---------------------------------------------- |
-| `GGN`        | String   | ✅       | Format version, always `"1.0"`                 |
-| `ID`         | String   | ✅       | Unique game identifier                         |
-| `Mode`       | String   | ✅       | Game mode: `4winning`, `exact`, or `precision` |
-| `Date`       | ISO 8601 | ✅       | Game creation timestamp (`created_at`)         |
-| `Updated`    | ISO 8601 | ✅       | Last updated timestamp (`updated_at`)          |
-| `URL`        | String   | ✅       | Canonical game URL                             |
-| `Winner`     | String   | ✅       | See format below                               |
-| `TotalShots` | Integer  | ✅       | Total shots in the game                        |
-| `ShotsLeft`  | Integer  | ✅       | Shots remaining                                |
-| `MovesCount` | Integer  | ✅       | Number of moves made                           |
-| `Duration`   | Integer  | ✅       | Game duration in seconds                       |
+| Tag | Type | Required | Description |
+| --- | --- | --- | --- |
+| `GGN` | String | ✅ | Format version |
+| `ID` | String | ✅ | Unique game identifier |
+| `Mode` | String | ✅ | Game mode |
+| `Date` | ISO 8601 | ✅ | Game creation timestamp |
+| `Updated` | ISO 8601 | ✅ | Last updated timestamp |
+| `URL` | String | ✅ | Canonical game URL |
+| `WinnerPos` | Integer | ✅ | Winner position |
+| `WinnerName` | String | ✅ | Winner display name |
+| `WinnerID` | String | ✅ | Winner player identifier |
+| `WinnerColor` | String | ✅ | Winner color |
+| `WinnerScore` | Integer | ✅ | Winner score |
+| `WinnerData` | Data | ✅ | Winner-specific data payload |
+| `TotalShots` | Integer | ✅ | Total shots in the game |
+| `ShotsLeft` | Integer | ✅ | Shots remaining |
+| `MovesCount` | Integer | ✅ | Number of moves made |
+| `Duration` | Integer | ✅ | Game duration in seconds |
 
-### Winner Tag Format
-
-```
-[Winner "pos|name|player_id|color|points|shots"]
-```
-
-- `points` and `shots` are omitted with `-` if not applicable
-
-**Example:**
+**Header Example:**
 
 ```
-[Winner "1|Alice|user_abc123|red|42|-"]
-```
-
----
-
-## Player Tags
-
-One `[Player ...]` tag per participant, ordered by `pos` ascending.
-
-```
-[Player "pos|name|player_id|color|points|shots|data"]
-```
-
-- `points` and `shots` are `-` if not applicable
-- `data` is a comma-separated list of strings, or `-` if empty
-
-**Example:**
-
-```
-[Player "1|Alice|user_abc123|red|42|-|val1,val2"]
-[Player "2|Bob|user_def456|blue|-|12|-"]
+[GGN "1.0"]
+[ID "game_abc123"]
+[Mode "4winning"]
+[Date "2026-04-13T14:32:00Z"]
+[Updated "2026-04-13T14:45:00Z"]
+[URL "https://realgolf.games/game/game_abc123"]
+[WinnerPos "1"]
+[WinnerName "Alice"]
+[WinnerID "user_abc123"]
+[WinnerColor "red"]
+[WinnerScore "0"]
+[WinnerData "-"]
+[TotalShots "0"]
+[ShotsLeft "0"]
+[MovesCount "21"]
+[Duration "780"]
 ```
 
 ---
 
-## Board Block
+## Players Block
 
-Only present when `Mode` is `4winning`. Placed after all Player tags.
+The players section is wrapped by `PLAYERS` and `ENDPLAYERS`.
+
+One `[Player ...]` tag is written per participant, ordered by `POS` ascending.
 
 ```
-BOARD
-cell,cell,cell
-cell,cell,cell
-ENDBOARD
+PLAYERS
+[Player "POS|NAME|PLAYER_ID|COLOR|DATA"]
+ENDPLAYERS
 ```
 
-Each cell is one of:
-
-| Value             | Description                            |
-| ----------------- | -------------------------------------- |
-| `empty`           | No piece placed                        |
-| `color:player_id` | Piece of `color` placed by `player_id` |
+- `DATA` is a game-specific payload for that player
 
 **Example:**
 
 ```
-BOARD
-empty,red:user_abc123,empty
-blue:user_def456,red:user_abc123,empty
-ENDBOARD
+PLAYERS
+[Player "1|Alice|user_abc123|red|-"]
+[Player "2|Bob|user_def456|blue|-"]
+ENDPLAYERS
+```
+
+---
+
+## Gameboard Block
+
+The gameboard section is wrapped by `GAMEBOARD` and `ENDGAMEBOARD`.
+
+Each row is written as:
+
+```
+[Row "TEXT|COLOR|PLAYER_ID"]
+```
+
+- `PLAYER_ID` is optional
+
+**Example:**
+
+```
+GAMEBOARD
+[Row ".......|-"]
+[Row "..R....|red|user_abc123"]
+[Row "..B....|blue|user_def456"]
+ENDGAMEBOARD
 ```
 
 ---
@@ -123,19 +135,27 @@ ENDBOARD
 [Date "2026-04-13T14:32:00Z"]
 [Updated "2026-04-13T14:45:00Z"]
 [URL "https://realgolf.games/game/game_abc123"]
-[Winner "1|Alice|user_abc123|red|-|-"]
+[WinnerPos "1"]
+[WinnerName "Alice"]
+[WinnerID "user_abc123"]
+[WinnerColor "red"]
+[WinnerScore "0"]
+[WinnerData "-"]
 [TotalShots "0"]
 [ShotsLeft "0"]
 [MovesCount "21"]
 [Duration "780"]
 
-[Player "1|Alice|user_abc123|red|-|-|-"]
-[Player "2|Bob|user_def456|blue|-|-|-"]
+PLAYERS
+[Player "1|Alice|user_abc123|red|-"]
+[Player "2|Bob|user_def456|blue|-"]
+ENDPLAYERS
 
-BOARD
-empty,red:user_abc123,blue:user_def456,empty,empty,empty,empty
-red:user_abc123,blue:user_def456,red:user_abc123,empty,empty,empty,empty
-ENDBOARD
+GAMEBOARD
+[Row ".......|-"]
+[Row "..R....|red|user_abc123"]
+[Row "..B....|blue|user_def456"]
+ENDGAMEBOARD
 ```
 
 ### exact
@@ -147,14 +167,21 @@ ENDBOARD
 [Date "2026-04-13T15:00:00Z"]
 [Updated "2026-04-13T15:12:00Z"]
 [URL "https://realgolf.games/game/game_def456"]
-[Winner "1|Alice|user_abc123|red|15|9"]
+[WinnerPos "1"]
+[WinnerName "Alice"]
+[WinnerID "user_abc123"]
+[WinnerColor "red"]
+[WinnerScore "15"]
+[WinnerData "shot1,shot2,shot3"]
 [TotalShots "18"]
 [ShotsLeft "9"]
 [MovesCount "9"]
 [Duration "420"]
 
-[Player "1|Alice|user_abc123|red|15|9|shot1,shot2,shot3"]
-[Player "2|Bob|user_def456|blue|12|9|shot1,shot2,shot3"]
+PLAYERS
+[Player "1|Alice|user_abc123|red|shot1,shot2,shot3"]
+[Player "2|Bob|user_def456|blue|shot1,shot2,shot3"]
+ENDPLAYERS
 ```
 
 ---
@@ -164,11 +191,6 @@ ENDBOARD
 The `GGN` header tag contains the format version. Future versions may add new tags or blocks. Parsers should ignore unknown tags gracefully.
 
 ---
-
-## License
-
-Data published by RealGolf.Games is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).  
-Format specification © RealGolf.Games UG (haftungsbeschränkt), licensed under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (the spec itself is in the public domain — implement freely).
 
 ## License
 
